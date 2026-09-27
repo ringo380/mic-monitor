@@ -1,97 +1,142 @@
 # mic-monitor
 
-Live microphone monitoring: route an input device to an output device with low
-latency so you hear yourself in your headphones. Defaults to
-**Blue Yeti -> Corsair headset**. Runs on macOS and Windows.
+Hear your own microphone in your headphones with low latency.
 
-## Components
+Useful when you record or stream with a USB microphone and closed headphones
+and want to hear yourself (sidetone) without the delay that Windows' "Listen
+to this device" adds. It streams an input device straight to an output device
+through PortAudio with a small buffer, and it survives a wireless headset
+going to sleep and waking up.
 
-| File | Role |
-|------|------|
-| `yeti-monitor.py` | The worker, shared by both platforms. Uses [`sounddevice`](https://python-sounddevice.readthedocs.io/) to stream input -> output. On Windows it prefers the WASAPI host API (3 ms) over MME (90 ms). |
-| `mic-monitor` | macOS zsh CLI wrapper: `start` / `stop` / `status` / `toggle` (default `toggle`). Backgrounds the worker and tracks a PID file. |
-| `mic-monitor-app.py` | macOS menu-bar toggle via [`rumps`](https://github.com/jaredks/rumps). Drives the CLI so both stay in sync. |
-| `mic-monitor.ps1` | Windows PowerShell CLI wrapper, same commands as `mic-monitor`. Runs the worker under `pythonw.exe` so no console window appears. |
-| `mic-monitor-tray.py` | Windows system-tray toggle via [`pystray`](https://github.com/moses-palmer/pystray). Drives `mic-monitor.ps1`. |
-| `install-windows.ps1` | Writes `.cmd` shims for the two Windows entry points into `~\.local\bin`. |
-| `test_find_device.py` | Unit test for device selection (WASAPI preference, macOS fallback). |
+- **CLI**: `mic-monitor` toggles monitoring on and off in the background.
+- **Tray icon**: `mic-monitor-tray` gives you a click-to-toggle icon.
+- **Any devices**: defaults to the system default input and output. Pick
+  others by a part of their name.
+- **Recovery**: reopens the stream by itself when a headset sleeps and wakes.
+
+Works on Windows. macOS and Linux are supported by the code but not yet tested
+by the author, see [Platform notes](#platform-notes).
 
 ## Install
 
-### macOS
-
-The scripts run in place from this repo. Put the two entry points on your `PATH`
-by symlinking them into `~/.local/bin` (each resolves its own real path, so the
-worker script is always found alongside it):
+Requires Python 3.10 or newer. [pipx](https://pipx.pypa.io/) keeps the tool
+in its own environment and puts the commands on your PATH:
 
 ```sh
-ln -sf "$PWD/mic-monitor"        ~/.local/bin/mic-monitor
-ln -sf "$PWD/mic-monitor-app.py" ~/.local/bin/mic-monitor-app.py
+pipx install git+https://github.com/ringo380/mic-monitor
 ```
 
-### Windows
+Without pipx, `pip install git+https://github.com/ringo380/mic-monitor` works
+too; make sure your Python scripts directory is on PATH.
 
-```powershell
-pip install sounddevice pystray pillow
-.\install-windows.ps1     # writes ~\.local\bin\mic-monitor.cmd and mic-monitor-tray.cmd
-```
+Linux also needs the PortAudio library, for example `sudo apt install libportaudio2`.
 
-The shims point at the repo by absolute path; re-run the installer if the repo
-moves. `~\.local\bin` must be on `PATH`.
-
-## Usage
-
-Same commands on both platforms (`mic-monitor` resolves to the zsh wrapper on
-macOS and to the `.cmd` shim on Windows):
+## Use
 
 ```sh
-mic-monitor            # toggle on/off
-mic-monitor start      # start monitoring
-mic-monitor stop       # stop
-mic-monitor status     # is it running?
-
-# pass-through worker options (forwarded after `start`):
-mic-monitor start --in Yeti --out CORSAIR --gain 1.0 --blocksize 256
-python yeti-monitor.py --list   # list host APIs and audio devices
+mic-monitor              # toggle: start if stopped, stop if running
+mic-monitor start        # start in the background
+mic-monitor stop
+mic-monitor status       # Running (pid 1234): <input>  ->  <output>
+mic-monitor run          # foreground, Ctrl+C to stop (handy for trying settings)
+mic-monitor list         # show audio devices
 ```
 
-`--samplerate` defaults to the input device's own rate. WASAPI shared mode
-rejects any other rate, so only override it if you know the endpoint accepts it.
-
-Menu-bar / tray app:
+Tray icon:
 
 ```sh
-mic-monitor-app.py     # macOS: emoji icon in the menu bar
-mic-monitor-tray       # Windows: green disc = on, grey with red slash = off
+mic-monitor-tray
 ```
 
-Left-click the tray icon (or use its menu) to toggle. Quitting stops monitoring.
-The icon polls every 3 s so it stays correct when toggled from a terminal.
+Green disc with a white mic = on, grey disc with a red slash = off. Left-click
+toggles, right-click shows the devices, Start/Stop and Quit. Quitting stops
+monitoring. The icon polls every 3 seconds, so it stays correct when you toggle
+from a terminal. To have it at login, add `mic-monitor-tray` to your startup
+items (Windows: `shell:startup` folder, macOS: Login Items).
 
-Windows log: `%TEMP%\mic-monitor.log` (the worker writes it itself via `--log`).
-Stopping is a hard kill of the worker, which is fine for a pass-through stream.
+## Choose devices and settings
 
-## Auto-recovery after headset sleep
-
-A wireless headset that sleeps and wakes gets its Windows audio endpoint
-re-created. An open stream keeps running into the old endpoint: status says
-running, but you hear nothing. On Windows the worker polls the PnP arrival
-timestamp of both endpoints every 2 s (cfgmgr32 via ctypes, no extra packages)
-and reopens the stream when either changes. On every platform a stream that
-goes inactive on its own is reopened too. The reopen happens in-process, so the
-PID, the CLI and the tray app are unaffected. The log shows `Reopening: ...`
-and `Reopened.` when it fires, or `waiting for device: ...` while the headset
-is still off.
-
-## Requirements
-
-- macOS: Homebrew Python (`/opt/homebrew/bin/python3`), `pip install sounddevice rumps`
-- Windows: Python 3 at `C:\Program Files\Python314\` (edit the path at the top of
-  `mic-monitor.ps1` and in `install-windows.ps1` for a different install),
-  `pip install sounddevice pystray pillow`
-
-## Test
+With no settings, monitoring goes from the system default input to the system
+default output. To pick devices, use a distinctive part of their names as
+shown by `mic-monitor list`:
 
 ```sh
-python -m pytest test_find_device.py
+mic-monitor start --in Yeti --out CORSAIR
 ```
+
+Save settings so every start and the tray icon use them:
+
+```sh
+mic-monitor config --in Yeti --out CORSAIR     # save
+mic-monitor config                              # show
+mic-monitor config --reset                      # back to defaults
+```
+
+| Setting | Default | Meaning |
+|---|---|---|
+| `--in` | system default | input device name substring (case-insensitive) |
+| `--out` | system default | output device name substring |
+| `--gain` | 1.0 | output volume multiplier |
+| `--blocksize` | 256 | frames per buffer; lower = less latency, more risk of dropouts |
+| `--samplerate` | input device's rate | only change it if you know the device accepts it |
+
+Precedence: a command-line flag beats the saved config, which beats the default.
+
+On Windows a device appears once per host API (MME, DirectSound, WASAPI,
+WDM-KS). mic-monitor always prefers the WASAPI entry, which is the low-latency
+one (about 3 ms of buffer against 90 ms for MME), so you never need to pick it
+by index.
+
+## How recovery works
+
+A wireless headset that sleeps and wakes gets its audio endpoint re-created by
+the operating system. A stream that was open on the old endpoint keeps
+running into nothing: the process looks fine, you hear silence. mic-monitor
+reopens its stream when:
+
+- the stream goes inactive on its own (any platform), or
+- on Windows, the Plug and Play arrival timestamp of the input or output
+  endpoint changes (checked every 2 seconds through cfgmgr32, no extra
+  packages).
+
+While the device is away the log shows `waiting for device: ...` with a retry
+every 2 seconds, then `Reopened.` The reopen happens inside the same process,
+so the PID, the CLI and the tray icon are unaffected.
+
+## Files
+
+| What | Windows | macOS / Linux |
+|---|---|---|
+| Saved config | `%APPDATA%\mic-monitor\config.json` | `~/.config/mic-monitor/config.json` |
+| Worker log | `%LOCALAPPDATA%\mic-monitor\worker.log` | `~/.local/state/mic-monitor/worker.log` |
+| PID and status | same directory as the log | same directory as the log |
+| Tray errors | `%LOCALAPPDATA%\mic-monitor\tray.log` | `~/.local/state/mic-monitor/tray.log` |
+
+`XDG_CONFIG_HOME` and `XDG_STATE_HOME` are honoured.
+
+## Platform notes
+
+- **Windows**: tested. The background worker runs with no console window and
+  stopping it is a hard kill, which is fine for a pass-through stream.
+- **macOS**: the tray icon uses pystray, which pulls in pyobjc. Not yet tested
+  by the author; the worker code path is the same as on Windows minus the PnP
+  watch. Reports welcome.
+- **Linux**: needs `libportaudio2` and an X11 or AppIndicator-capable tray for
+  the icon. Not yet tested by the author.
+
+## Development
+
+```sh
+git clone https://github.com/ringo380/mic-monitor
+cd mic-monitor
+pip install -e .[dev]
+python check.py          # ruff + tests, no hardware needed, a few seconds
+python check.py --hw     # also the hardware tests (opens your real devices)
+```
+
+The hardware tests use your saved config or the system defaults. One of them
+simulates a headset re-arrival and asserts the stream reopens.
+
+## License
+
+MIT, see [LICENSE](LICENSE).
