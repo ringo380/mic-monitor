@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mic-monitor</title>
+<meta name="description" content="Hear your own microphone in your headphones with low latency. Free, open source, one-line install for Windows, macOS and Linux.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%2322a559'/%3E%3Crect x='25' y='12' width='14' height='26' rx='7' fill='white'/%3E%3Cpath d='M18 32a14 14 0 0 0 28 0' stroke='white' stroke-width='4' fill='none'/%3E%3Crect x='30' y='45' width='4' height='8' fill='white'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #111418;
+    --muted: #4a5360;
+    --card: #f2f4f7;
+    --border: #c9d0d9;
+    --accent: #13803f;
+    --accent-fg: #ffffff;
+    --code-bg: #0f1419;
+    --code-fg: #f3f6f9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117;
+      --fg: #eef1f5;
+      --muted: #b3bcc8;
+      --card: #171d25;
+      --border: #333d4a;
+      --accent: #2fbf6a;
+      --accent-fg: #06120b;
+      --code-bg: #05080b;
+      --code-fg: #f3f6f9;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { font-size: 20px; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.55;
+  }
+  main { max-width: 42rem; margin: 0 auto; padding: 2.5rem 1rem 4rem; }
+  header { display: flex; align-items: center; gap: 0.8rem; }
+  header svg { width: 3rem; height: 3rem; flex: none; }
+  h1 { font-size: 2.2rem; margin: 0; line-height: 1.1; }
+  .tagline { font-size: 1.25rem; margin: 1rem 0 2rem; }
+  h2 { font-size: 1.4rem; margin: 2.5rem 0 0.8rem; }
+  h3 { font-size: 1.05rem; margin: 1.4rem 0 0.4rem; }
+  p, li { max-width: 38rem; }
+  a { color: var(--accent); font-weight: 600; }
+  a:focus-visible, button:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+  .cmd {
+    display: flex;
+    flex-direction: column;
+    background: var(--code-bg);
+    color: var(--code-fg);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .cmd code {
+    display: block;
+    padding: 1rem;
+    font-family: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace;
+    font-size: 0.9rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .cmd button {
+    align-self: stretch;
+    border: 0;
+    padding: 0.7rem 1rem;
+    background: var(--accent);
+    color: var(--accent-fg);
+    font: inherit;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .note { color: var(--muted); font-size: 0.9rem; margin: 0.5rem 0 0; }
+  ul { padding-left: 1.2rem; }
+  li { margin: 0.4rem 0; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 0.2rem 1.1rem 0.6rem;
+    margin-top: 1rem;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+  td { padding: 0.45rem 0; vertical-align: top; border-top: 1px solid var(--border); }
+  td:first-child { white-space: nowrap; padding-right: 1rem; }
+  td code, p code, li code {
+    font-family: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace;
+    font-size: 0.9em;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 0.05rem 0.3rem;
+  }
+  footer { margin-top: 3rem; color: var(--muted); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <svg viewBox="0 0 64 64" aria-hidden="true">
+      <circle cx="32" cy="32" r="30" fill="#22a559"/>
+      <rect x="25" y="12" width="14" height="26" rx="7" fill="#fff"/>
+      <path d="M18 32a14 14 0 0 0 28 0" stroke="#fff" stroke-width="4" fill="none"/>
+      <rect x="30" y="45" width="4" height="8" fill="#fff"/>
+    </svg>
+    <h1>mic-monitor</h1>
+  </header>
+
+  <p class="tagline">Hear your own microphone in your headphones, with almost no delay.</p>
+
+  <p>For anyone recording, streaming or calling with a USB mic and closed
+  headphones who wants to hear themselves. It skips the lag of Windows'
+  "Listen to this device", and it keeps working when a wireless headset
+  sleeps and wakes up. Free and open source.</p>
+
+  <h2>Install</h2>
+
+  <h3>Windows</h3>
+  <p>Open PowerShell and paste:</p>
+  <div class="cmd">
+    <code id="win">irm https://raw.githubusercontent.com/ringo380/mic-monitor/main/install.ps1 | iex</code>
+    <button type="button" data-copy="win">Copy</button>
+  </div>
+
+  <h3>macOS or Linux</h3>
+  <p>Open Terminal and paste:</p>
+  <div class="cmd">
+    <code id="nix">curl -fsSL https://raw.githubusercontent.com/ringo380/mic-monitor/main/install.sh | sh</code>
+    <button type="button" data-copy="nix">Copy</button>
+  </div>
+
+  <p class="note">Installs Python if you need it, keeps everything in your
+  user folder, and starts the tray icon. Run the same line again to update.
+  Nothing starts at login unless you add it.</p>
+
+  <h2>Use it</h2>
+  <ul>
+    <li><strong>Tray icon:</strong> click to turn monitoring on or off.
+      Green means on, grey means off.</li>
+    <li><strong>Terminal:</strong> type <code>mic-monitor</code> to toggle.</li>
+    <li><strong>Pick devices</strong> by part of their name, once:
+      <code>mic-monitor config --in Yeti --out Headset</code></li>
+  </ul>
+
+  <div class="card">
+    <h3>Commands</h3>
+    <table>
+      <tr><td><code>mic-monitor</code></td><td>toggle on or off</td></tr>
+      <tr><td><code>mic-monitor status</code></td><td>what is running, and which devices</td></tr>
+      <tr><td><code>mic-monitor list</code></td><td>show your audio devices</td></tr>
+      <tr><td><code>mic-monitor config</code></td><td>show or save devices and volume</td></tr>
+      <tr><td><code>mic-monitor-tray</code></td><td>start the tray icon</td></tr>
+    </table>
+  </div>
+
+  <h2>Why it feels instant</h2>
+  <ul>
+    <li>Streams the mic straight to your headphones with a small buffer.</li>
+    <li>On Windows it always uses the low-latency WASAPI path, about 3 ms of
+      buffer instead of about 90 ms.</li>
+    <li>When a wireless headset wakes up, the sound comes back by itself.</li>
+  </ul>
+
+  <h2>Uninstall</h2>
+  <h3>Windows</h3>
+  <div class="cmd">
+    <code id="win-un">&amp; ([scriptblock]::Create((irm https://raw.githubusercontent.com/ringo380/mic-monitor/main/install.ps1))) -Uninstall</code>
+    <button type="button" data-copy="win-un">Copy</button>
+  </div>
+  <h3>macOS or Linux</h3>
+  <div class="cmd">
+    <code id="nix-un">curl -fsSL https://raw.githubusercontent.com/ringo380/mic-monitor/main/install.sh | sh -s -- --uninstall</code>
+    <button type="button" data-copy="nix-un">Copy</button>
+  </div>
+  <p class="note">Your saved settings and logs are kept.</p>
+
+  <h2>More</h2>
+  <ul>
+    <li><a href="https://github.com/ringo380/mic-monitor#readme">Full documentation</a></li>
+    <li><a href="https://github.com/ringo380/mic-monitor">Source code on GitHub</a></li>
+    <li><a href="https://github.com/ringo380/mic-monitor/issues">Report a problem</a></li>
+  </ul>
+
+  <footer>
+    Tested on Windows 11. macOS and Linux are supported but not yet tested by
+    the author. MIT license.
+  </footer>
+</main>
+<script>
+  document.querySelectorAll("button[data-copy]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var text = document.getElementById(btn.dataset.copy).textContent;
+      var done = function (label) {
+        btn.textContent = label;
+        setTimeout(function () { btn.textContent = "Copy"; }, 2000);
+      };
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(
+          function () { done("Copied"); },
+          function () { done("Select the text and copy it"); }
+        );
+      } else {
+        done("Select the text and copy it");
+      }
+    });
+  });
+</script>
+</body>
+</html>
