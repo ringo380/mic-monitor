@@ -3,11 +3,11 @@ mic-monitor installer for Windows.
 
 Install or upgrade (PowerShell):
 
-    irm https://raw.githubusercontent.com/ringo380/mic-monitor/main/install.ps1 | iex
+    irm https://raw.githubusercontent.com/robworks-code/mic-monitor/main/install.ps1 | iex
 
 Uninstall:
 
-    & ([scriptblock]::Create((irm https://raw.githubusercontent.com/ringo380/mic-monitor/main/install.ps1))) -Uninstall
+    & ([scriptblock]::Create((irm https://raw.githubusercontent.com/robworks-code/mic-monitor/main/install.ps1))) -Uninstall
 
 What it does:
 
@@ -30,7 +30,7 @@ param(
     [switch]$Uninstall,
     [switch]$NoLaunch,
     [string]$Source = $(if ($env:MIC_MONITOR_SOURCE) { $env:MIC_MONITOR_SOURCE }
-                        else { 'https://github.com/ringo380/mic-monitor/archive/refs/heads/main.zip' })
+                        else { 'https://github.com/robworks-code/mic-monitor/archive/refs/heads/main.zip' })
 )
 
 $ErrorActionPreference = 'Stop'
@@ -49,7 +49,7 @@ $Bin = Join-Path $Root 'bin'
 $Icon = Join-Path $Root 'mic-monitor.ico'
 $Shortcut = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\mic-monitor tray.lnk'
 $Apps = @('mic-monitor.exe', 'mic-monitor-tray.exe')
-$SelfUrl = 'https://raw.githubusercontent.com/ringo380/mic-monitor/main/install.ps1'
+$SelfUrl = 'https://raw.githubusercontent.com/robworks-code/mic-monitor/main/install.ps1'
 
 function Say([string]$Text) { Write-Host $Text }
 

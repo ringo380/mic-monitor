@@ -3,11 +3,11 @@
 #
 # Install or upgrade:
 #
-#     curl -fsSL https://raw.githubusercontent.com/ringo380/mic-monitor/main/install.sh | sh
+#     curl -fsSL https://raw.githubusercontent.com/robworks-code/mic-monitor/main/install.sh | sh
 #
 # Uninstall:
 #
-#     curl -fsSL https://raw.githubusercontent.com/ringo380/mic-monitor/main/install.sh | sh -s -- --uninstall
+#     curl -fsSL https://raw.githubusercontent.com/robworks-code/mic-monitor/main/install.sh | sh -s -- --uninstall
 #
 # What it does:
 #
@@ -29,13 +29,13 @@
 
 set -eu
 
-SOURCE="${MIC_MONITOR_SOURCE:-https://github.com/ringo380/mic-monitor/archive/refs/heads/main.zip}"
+SOURCE="${MIC_MONITOR_SOURCE:-https://github.com/robworks-code/mic-monitor/archive/refs/heads/main.zip}"
 DATA="${XDG_DATA_HOME:-$HOME/.local/share}/mic-monitor"
 VENV="$DATA/venv"
 BIN="$HOME/.local/bin"
 APPS="mic-monitor mic-monitor-tray"
 OS="$(uname -s)"
-SELF_URL="https://raw.githubusercontent.com/ringo380/mic-monitor/main/install.sh"
+SELF_URL="https://raw.githubusercontent.com/robworks-code/mic-monitor/main/install.sh"
 
 UNINSTALL=0
 LAUNCH=1

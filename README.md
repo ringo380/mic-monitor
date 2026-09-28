@@ -14,8 +14,8 @@ going to sleep and waking up.
   others by a part of their name.
 - **Recovery**: reopens the stream by itself when a headset sleeps and wakes.
 
-Works on Windows. macOS and Linux are supported by the code but not yet tested
-by the author, see [Platform notes](#platform-notes).
+Works on Windows and macOS, where it started. Linux is supported by the code
+but not yet tested, see [Platform notes](#platform-notes).
 
 ## Install
 
@@ -26,13 +26,13 @@ tray icon. Run the same line again to upgrade.
 Windows, in PowerShell:
 
 ```powershell
-irm https://raw.githubusercontent.com/ringo380/mic-monitor/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/robworks-code/mic-monitor/main/install.ps1 | iex
 ```
 
 macOS or Linux, in Terminal:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/ringo380/mic-monitor/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/robworks-code/mic-monitor/main/install.sh | sh
 ```
 
 Where things go: Windows keeps the environment in `%LOCALAPPDATA%\mic-monitor`
@@ -43,17 +43,17 @@ installed system-wide and nothing runs at login unless you add it.
 Uninstall (your settings and logs are kept, see [Files](#files)):
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/ringo380/mic-monitor/main/install.ps1))) -Uninstall
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/robworks-code/mic-monitor/main/install.ps1))) -Uninstall
 ```
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/ringo380/mic-monitor/main/install.sh | sh -s -- --uninstall
+curl -fsSL https://raw.githubusercontent.com/robworks-code/mic-monitor/main/install.sh | sh -s -- --uninstall
 ```
 
 Prefer to manage it yourself? It is a normal Python package (3.10 or newer):
 
 ```sh
-pipx install https://github.com/ringo380/mic-monitor/archive/refs/heads/main.zip
+pipx install https://github.com/robworks-code/mic-monitor/archive/refs/heads/main.zip
 ```
 
 Linux also needs the PortAudio library, for example `sudo apt install libportaudio2`.
@@ -146,9 +146,10 @@ so the PID, the CLI and the tray icon are unaffected.
 
 - **Windows**: tested. The background worker runs with no console window and
   stopping it is a hard kill, which is fine for a pass-through stream.
-- **macOS**: the tray icon uses pystray, which pulls in pyobjc. Not yet tested
-  by the author; the worker code path is the same as on Windows minus the PnP
-  watch. macOS asks once for microphone access the first time monitoring
+- **macOS**: where mic-monitor was first built and used. The tray icon uses
+  pystray, which pulls in pyobjc; this packaged tray has had less use on macOS
+  than on Windows. The worker code path is the same as on Windows minus the
+  PnP watch. macOS asks once for microphone access the first time monitoring
   starts. Reports welcome.
 - **Linux**: needs `libportaudio2` and an X11 or AppIndicator-capable tray for
   the icon. Not yet tested by the author.
@@ -156,7 +157,7 @@ so the PID, the CLI and the tray icon are unaffected.
 ## Development
 
 ```sh
-git clone https://github.com/ringo380/mic-monitor
+git clone https://github.com/robworks-code/mic-monitor
 cd mic-monitor
 pip install -e .[dev]
 python check.py          # ruff + tests, no hardware needed, a few seconds
