@@ -1,0 +1,3 @@
+# The POSIX installer must stay LF even on a Windows checkout.
+install.sh text eol=lf
+*.py text eol=lf

@@ -19,15 +19,42 @@ by the author, see [Platform notes](#platform-notes).
 
 ## Install
 
-Requires Python 3.10 or newer. [pipx](https://pipx.pypa.io/) keeps the tool
-in its own environment and puts the commands on your PATH:
+One line. It installs Python if you do not have it, sets mic-monitor up in
+its own private environment, puts the commands on your PATH and starts the
+tray icon. Run the same line again to upgrade.
 
-```sh
-pipx install git+https://github.com/ringo380/mic-monitor
+Windows, in PowerShell:
+
+```powershell
+irm https://raw.githubusercontent.com/ringo380/mic-monitor/main/install.ps1 | iex
 ```
 
-Without pipx, `pip install git+https://github.com/ringo380/mic-monitor` works
-too; make sure your Python scripts directory is on PATH.
+macOS or Linux, in Terminal:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/ringo380/mic-monitor/main/install.sh | sh
+```
+
+Where things go: Windows keeps the environment in `%LOCALAPPDATA%\mic-monitor`
+and adds a Start Menu shortcut "mic-monitor tray"; macOS and Linux keep it in
+`~/.local/share/mic-monitor` with links in `~/.local/bin`. Nothing is
+installed system-wide and nothing runs at login unless you add it.
+
+Uninstall (your settings and logs are kept, see [Files](#files)):
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/ringo380/mic-monitor/main/install.ps1))) -Uninstall
+```
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/ringo380/mic-monitor/main/install.sh | sh -s -- --uninstall
+```
+
+Prefer to manage it yourself? It is a normal Python package (3.10 or newer):
+
+```sh
+pipx install https://github.com/ringo380/mic-monitor/archive/refs/heads/main.zip
+```
 
 Linux also needs the PortAudio library, for example `sudo apt install libportaudio2`.
 
@@ -111,8 +138,9 @@ so the PID, the CLI and the tray icon are unaffected.
 | Worker log | `%LOCALAPPDATA%\mic-monitor\worker.log` | `~/.local/state/mic-monitor/worker.log` |
 | PID and status | same directory as the log | same directory as the log |
 | Tray errors | `%LOCALAPPDATA%\mic-monitor\tray.log` | `~/.local/state/mic-monitor/tray.log` |
+| Installer's environment | `%LOCALAPPDATA%\mic-monitor\venv` and `bin` | `~/.local/share/mic-monitor/venv` |
 
-`XDG_CONFIG_HOME` and `XDG_STATE_HOME` are honoured.
+`XDG_CONFIG_HOME`, `XDG_STATE_HOME` and `XDG_DATA_HOME` are honoured.
 
 ## Platform notes
 
@@ -120,7 +148,8 @@ so the PID, the CLI and the tray icon are unaffected.
   stopping it is a hard kill, which is fine for a pass-through stream.
 - **macOS**: the tray icon uses pystray, which pulls in pyobjc. Not yet tested
   by the author; the worker code path is the same as on Windows minus the PnP
-  watch. Reports welcome.
+  watch. macOS asks once for microphone access the first time monitoring
+  starts. Reports welcome.
 - **Linux**: needs `libportaudio2` and an X11 or AppIndicator-capable tray for
   the icon. Not yet tested by the author.
 
