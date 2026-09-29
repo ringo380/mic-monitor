@@ -10,7 +10,8 @@ going to sleep and waking up.
 
 - **CLI**: `mic-monitor` toggles monitoring on and off in the background.
 - **Tray icon**: `mic-monitor-tray` gives you a click-to-toggle icon.
-- **Any devices**: defaults to the system default input and output. Pick
+- **Any devices**: defaults to the system default input and output, and on
+  Windows follows them when you change the default in Sound settings. Pick
   others by a part of their name.
 - **Recovery**: reopens the stream by itself when a headset sleeps and wakes.
 
@@ -96,6 +97,7 @@ Save settings so every start and the tray icon use them:
 ```sh
 mic-monitor config --in Yeti --out CORSAIR     # save
 mic-monitor config                              # show
+mic-monitor config --in ""                      # input back to the system default
 mic-monitor config --reset                      # back to defaults
 ```
 
@@ -108,6 +110,13 @@ mic-monitor config --reset                      # back to defaults
 | `--samplerate` | input device's rate | only change it if you know the device accepts it |
 
 Precedence: a command-line flag beats the saved config, which beats the default.
+
+A device left at the system default follows the default: on Windows, when you
+pick a different default input or output in Sound settings, monitoring moves
+to it within about 2 seconds. A device you named stays put. If the two
+devices run at different sample rates (a 44.1 kHz interface into a 48 kHz
+headset), the Windows audio engine converts, and a mono microphone plays in
+both ears.
 
 On Windows a device appears once per host API (MME, DirectSound, WASAPI,
 WDM-KS). mic-monitor always prefers the WASAPI entry, which is the low-latency
@@ -124,10 +133,13 @@ reopens its stream when:
 - the stream goes inactive on its own (any platform), or
 - on Windows, the Plug and Play arrival timestamp of the input or output
   endpoint changes (checked every 2 seconds through cfgmgr32, no extra
-  packages).
+  packages), or
+- on Windows, the system default input or output changes and that device is
+  left at the system default (checked every 2 seconds through Core Audio).
 
 While the device is away the log shows `waiting for device: ...` with a retry
-every 2 seconds, then `Reopened.` The reopen happens inside the same process,
+every 2 seconds, and `mic-monitor status` and the tray say it is waiting.
+Then the log shows `Reopened.` The reopen happens inside the same process,
 so the PID, the CLI and the tray icon are unaffected.
 
 ## Files
@@ -149,7 +161,8 @@ so the PID, the CLI and the tray icon are unaffected.
 - **macOS**: where mic-monitor was first built and used. The tray icon uses
   pystray, which pulls in pyobjc; this packaged tray has had less use on macOS
   than on Windows. The worker code path is the same as on Windows minus the
-  PnP watch. macOS asks once for microphone access the first time monitoring
+  PnP watch and following a changed default device (restart monitoring after
+  changing the default). macOS asks once for microphone access the first time monitoring
   starts. Reports welcome.
 - **Linux**: needs `libportaudio2` and an X11 or AppIndicator-capable tray for
   the icon. Not yet tested by the author.
@@ -165,7 +178,8 @@ python check.py --hw     # also the hardware tests (opens your real devices)
 ```
 
 The hardware tests use your saved config or the system defaults. One of them
-simulates a headset re-arrival and asserts the stream reopens.
+simulates a headset re-arrival, another a changed default input, and both
+assert the stream reopens.
 
 ## License
 

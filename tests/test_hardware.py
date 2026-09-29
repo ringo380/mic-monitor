@@ -67,6 +67,46 @@ def test_reopen_after_simulated_endpoint_rearrival(settings, tmp_path):
     assert out.count("Monitoring:") == 2
 
 
+def test_reopen_after_simulated_default_input_change(settings, tmp_path):
+    """Same loop with the input left unset (system default) and an injected
+    default-ID reader whose input ID moves on the second poll."""
+    from mic_monitor.worker import Monitor
+
+    calls = {"n": 0}
+
+    def fake_defaults():
+        calls["n"] += 1
+        return ("in-a" if calls["n"] < 2 else "in-b", "out-a")
+
+    followed = dict(settings, **{"in": None})
+    mon = Monitor(
+        followed, snapshot=lambda names: {}, defaults=fake_defaults,
+        status_file=tmp_path / "status.json",
+    )
+    buf = io.StringIO()
+    real = sys.stdout
+    sys.stdout = buf
+    threading.Timer(5.0, mon.stop.set).start()
+    try:
+        mon.run()
+    finally:
+        sys.stdout = real
+    out = buf.getvalue()
+    assert mon.reopens == 1, out
+    assert "Reopening: system default input device changed" in out and "Reopened." in out
+
+
+@pytest.mark.skipif(sys.platform != "win32", reason="Windows Core Audio")
+def test_windows_default_endpoint_ids():
+    import sounddevice  # noqa: F401  PortAudio up first, as in the worker
+
+    from mic_monitor.winaudio import default_endpoint_ids
+
+    ids = default_endpoint_ids()
+    assert all(i and i.startswith("{0.0.") for i in ids), ids
+    assert ids == default_endpoint_ids()
+
+
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows PnP watch")
 def test_windows_snapshot_sees_both_endpoints(settings):
     import sounddevice as sd

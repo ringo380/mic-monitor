@@ -9,6 +9,11 @@ looks fine, you hear nothing). The worker reopens its stream when the stream
 goes inactive on its own (any platform) or, on Windows, when either
 endpoint's PnP arrival timestamp changes. Reopening is in-process, so the
 PID, the CLI and the tray are unaffected.
+
+Following the default: a device left unset (no --in / --out) means the
+system default, and on Windows the worker also reopens when that default is
+changed in Sound settings, so monitoring moves to the new device. A device
+given by name stays put.
 """
 
 from __future__ import annotations
@@ -23,7 +28,7 @@ import time
 from pathlib import Path
 
 from . import config
-from .devices import DeviceNotFound, resolve_device
+from .devices import PREFERRED_HOSTAPI, DeviceNotFound, resolve_device
 
 STOP_POLL_SECONDS = 0.5  # keeps Ctrl+C responsive on Windows
 ENDPOINT_CHECK_EVERY = 4  # PnP check every 4th poll = every 2 s
@@ -48,6 +53,44 @@ def endpoints_changed(baseline: dict, current: dict) -> bool:
     return False
 
 
+def default_changed(baseline, current, follow) -> str | None:
+    """Which followed default moved: "input", "output" or None.
+
+    `baseline` and `current` are (input_id, output_id) with None for "no
+    default" or "unknown"; `follow` is (follow_input, follow_output). A
+    default that vanished is not a change: the stream going inactive covers
+    that, and there is nothing to reopen onto."""
+    for i, kind in enumerate(("input", "output")):
+        if follow[i] and baseline[i] is not None and current[i] is not None:
+            if current[i] != baseline[i]:
+                return kind
+    return None
+
+
+def stream_channels(in_dev, out_dev) -> tuple[int, int]:
+    """(input, output) channel counts: each device's own, capped at stereo.
+    A mono mic into stereo headphones broadcasts to both ears; the input is
+    never wider than the output, which numpy could not broadcast."""
+    out_ch = min(int(out_dev["max_output_channels"]), 2)
+    in_ch = min(int(in_dev["max_input_channels"]), out_ch)
+    return in_ch, out_ch
+
+
+def _is_wasapi(sd, dev) -> bool:
+    return sd.query_hostapis(dev["hostapi"])["name"] == PREFERRED_HOSTAPI
+
+
+def _default_ids():
+    if sys.platform == "win32":
+        from . import winaudio
+
+        try:
+            return winaudio.default_endpoint_ids()
+        except OSError as e:  # a COM failure must not kill monitoring
+            log(f"default device watch error: {e}")
+    return (None, None)
+
+
 def _default_snapshot(names):
     if sys.platform == "win32":
         from . import winpnp
@@ -63,9 +106,10 @@ class Monitor:
     """Owns the stream and the reopen logic.
 
     `settings` is a config-shaped dict (in, out, gain, blocksize, samplerate).
-    `snapshot` is injectable so the reopen mechanics can be integration-tested
-    without a real headset sleep. `status_file` gets a small JSON written on
-    every (re)open so the CLI and tray can show the device names."""
+    `snapshot` and `defaults` are injectable so the reopen mechanics can be
+    integration-tested without a real headset sleep or a settings change.
+    `status_file` gets a small JSON written on every (re)open so the CLI and
+    tray can show the device names."""
 
     def __init__(
         self,
@@ -73,14 +117,19 @@ class Monitor:
         snapshot=_default_snapshot,
         status_file: Path | None = None,
         token: str = "",
+        defaults=_default_ids,
     ):
         self.settings = settings
         self.snapshot = snapshot
+        self.defaults = defaults
+        # Unset device = system default, which is followed when it changes.
+        self.follow = (not settings.get("in"), not settings.get("out"))
         self.status_file = status_file
         self.token = token  # echoed in the status file so the CLI knows it is ours
         self.stop = threading.Event()
         self.reopens = 0
         self.gain = float(settings.get("gain") or 1.0)
+        self.names = ("", "")
 
     def _callback(self, indata, outdata, frames, time_info, status):
         if status:
@@ -98,27 +147,43 @@ class Monitor:
         in_idx = resolve_device(self.settings.get("in"), "input")
         out_idx = resolve_device(self.settings.get("out"), "output")
         in_dev, out_dev = sd.query_devices(in_idx), sd.query_devices(out_idx)
-        # WASAPI shared mode rejects a rate that differs from the endpoint's
-        # own, so follow the input device unless the caller overrides.
+        # Follow the input device's rate unless the caller overrides.
         samplerate = int(self.settings.get("samplerate") or in_dev["default_samplerate"])
         blocksize = int(self.settings.get("blocksize") or 256)
+        channels = stream_channels(in_dev, out_dev)
+        extra = None
+        # WASAPI shared mode rejects a rate that differs from an endpoint's
+        # own; let the Windows audio engine convert when they differ (a
+        # 44.1 kHz interface into a 48 kHz headset, say).
+        rates = {samplerate, int(in_dev["default_samplerate"]), int(out_dev["default_samplerate"])}
+        if len(rates) > 1 and _is_wasapi(sd, in_dev) and _is_wasapi(sd, out_dev):
+            conv = sd.WasapiSettings(auto_convert=True)
+            extra = (conv, conv)
         stream = sd.Stream(
             device=(in_idx, out_idx),
             samplerate=samplerate,
             blocksize=blocksize,
             dtype="float32",
-            channels=2,
+            channels=channels,
             latency="low",
             callback=self._callback,
+            extra_settings=extra,
         )
         stream.start()
         names = (in_dev["name"], out_dev["name"])
         log(f"Monitoring: {names[0]}  ->  {names[1]}")
-        log(f"gain={self.gain}  blocksize={blocksize}  samplerate={samplerate}")
+        log(
+            f"gain={self.gain}  blocksize={blocksize}  samplerate={samplerate}  "
+            f"channels={channels[0]}->{channels[1]}"
+            + ("  (rate converted)" if extra else "")
+        )
+        self.names = names
         self._write_status(names, samplerate)
         return stream, names
 
-    def _write_status(self, names, samplerate) -> None:
+    def _write_status(self, names, samplerate, waiting: str | None = None) -> None:
+        """`waiting` = why a reopen is failing; the CLI and tray show it so
+        they never report the last good devices as still monitoring."""
         if not self.status_file:
             return
         data = {
@@ -130,6 +195,8 @@ class Monitor:
             "reopens": self.reopens,
             "since": time.time(),
         }
+        if waiting:
+            data["waiting"] = waiting
         try:
             self.status_file.parent.mkdir(parents=True, exist_ok=True)
             self.status_file.write_text(json.dumps(data), encoding="utf-8")
@@ -147,6 +214,7 @@ class Monitor:
                     "auto-recovery on headset wake is disabled"
                 )
             baseline = {}
+        default_ids = self.defaults() if any(self.follow) else (None, None)
         tick = 0
         while not self.stop.wait(STOP_POLL_SECONDS):
             tick += 1
@@ -155,6 +223,10 @@ class Monitor:
             if baseline and tick % ENDPOINT_CHECK_EVERY == 0:
                 if endpoints_changed(baseline, self.snapshot(names)):
                     return "audio endpoint re-arrived (device slept/woke or was replugged)"
+            if default_ids != (None, None) and tick % ENDPOINT_CHECK_EVERY == 0:
+                kind = default_changed(default_ids, self.defaults(), self.follow)
+                if kind:
+                    return f"system default {kind} device changed"
         return None
 
     def run(self) -> None:
@@ -189,6 +261,7 @@ class Monitor:
             except (DeviceNotFound, sd.PortAudioError) as e:
                 if not waiting_logged:
                     log(f"waiting for device: {e}")
+                    self._write_status(self.names, None, waiting=str(e))
                     waiting_logged = True
                 self.stop.wait(REOPEN_RETRY_SECONDS)
         return None, None

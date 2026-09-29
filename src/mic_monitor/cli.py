@@ -182,6 +182,8 @@ def status() -> str:
     if not pid:
         return "Not running."
     st = read_status()
+    if st and st.get("waiting"):
+        return f"Running (pid {pid}), waiting for device: {st['waiting']}"
     if st:
         extra = f" (reopened {st['reopens']}x)" if st.get("reopens") else ""
         return f"Running (pid {pid}): {st['in']}  ->  {st['out']}{extra}"
@@ -207,6 +209,9 @@ def _log_tail(n: int = 8) -> str:
 def _config_cmd(args) -> str:
     values = settings_from_args(args)
     given = {k: v for k, v in values.items() if v is not None}
+    for k in ("in", "out"):
+        if given.get(k) == "":  # --in "" = back to the system default
+            given[k] = None
     if args.reset:
         path = config.config_path()
         try:

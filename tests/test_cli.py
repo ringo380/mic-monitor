@@ -85,6 +85,14 @@ def test_status_file_only_trusted_with_matching_token():
     assert "still opening" in cli.status()
 
 
+def test_status_shows_waiting_instead_of_last_devices():
+    config.state_dir().mkdir(parents=True)
+    config.pid_path().write_text(f"{os.getpid()} tok1\n", encoding="utf-8")
+    st = {"token": "tok1", "in": "A", "out": "B", "reopens": 1, "waiting": "no device"}
+    config.status_path().write_text(json.dumps(st), encoding="utf-8")
+    assert cli.status() == f"Running (pid {os.getpid()}), waiting for device: no device"
+
+
 def test_legacy_pid_file_without_token_still_parses():
     config.state_dir().mkdir(parents=True)
     config.pid_path().write_text(f"{os.getpid()}", encoding="utf-8")
@@ -99,6 +107,8 @@ def test_config_command_saves_and_shows(capsys):
     assert saved["in"] == "Yeti" and saved["gain"] == 0.7
     cli.main(["config"])
     assert "(system default)" in capsys.readouterr().out  # out is unset
+    cli.main(["config", "--in", ""])
+    assert config.load()["in"] is None and config.load()["gain"] == 0.7
     cli.main(["config", "--reset"])
     assert not config.config_path().exists()
 

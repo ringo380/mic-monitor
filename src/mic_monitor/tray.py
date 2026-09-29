@@ -71,7 +71,9 @@ class TrayApp:
         devices = ""
         if on:
             st = cli.read_status()
-            if st:
+            if st and st.get("waiting"):
+                devices = "waiting for device"
+            elif st:
                 devices = f"{st['in']} -> {st['out']}"
         if on != self.on or devices != self.devices:
             self.on, self.devices = on, devices
