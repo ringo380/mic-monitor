@@ -113,7 +113,7 @@
     <h1>mic-monitor</h1>
   </header>
 
-  <p class="tagline">Hear your own microphone in your headphones, with almost no delay.</p>
+  <p class="tagline">Hear your own microphone in your headphones, with low delay.</p>
 
   <p>For anyone recording, streaming or calling with a USB mic and closed
   headphones who wants to hear themselves. It skips the lag of Windows'
@@ -160,11 +160,13 @@
     </table>
   </div>
 
-  <h2>Why it feels instant</h2>
+  <h2>Why the delay is low</h2>
   <ul>
     <li>Streams the mic straight to your headphones with a small buffer.</li>
-    <li>On Windows it always uses the low-latency WASAPI path, about 3 ms of
-      buffer instead of about 90 ms.</li>
+    <li>On Windows it always uses the low-latency WASAPI path instead of the
+      slower MME one.</li>
+    <li>A wireless headset adds its own delay; a wired path or the mic's own
+      headphone jack is faster. See the README's Latency section.</li>
     <li>When a wireless headset wakes up, the sound comes back by itself.</li>
     <li>On Windows, change your default mic in Sound settings and monitoring
       moves to it.</li>

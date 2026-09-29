@@ -22,7 +22,7 @@ DEFAULTS: dict[str, object] = {
     "in": None,
     "out": None,
     "gain": 1.0,
-    "blocksize": 256,
+    "blocksize": 64,
     "samplerate": None,  # None = the input device's own rate
 }
 KEYS = tuple(DEFAULTS)

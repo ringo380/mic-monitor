@@ -106,7 +106,7 @@ mic-monitor config --reset                      # back to defaults
 | `--in` | system default | input device name substring (case-insensitive) |
 | `--out` | system default | output device name substring |
 | `--gain` | 1.0 | output volume multiplier |
-| `--blocksize` | 256 | frames per buffer; lower = less latency, more risk of dropouts |
+| `--blocksize` | 64 | frames per buffer; lower = less latency, more risk of dropouts |
 | `--samplerate` | input device's rate | only change it if you know the device accepts it |
 
 Precedence: a command-line flag beats the saved config, which beats the default.
@@ -120,8 +120,30 @@ both ears.
 
 On Windows a device appears once per host API (MME, DirectSound, WASAPI,
 WDM-KS). mic-monitor always prefers the WASAPI entry, which is the low-latency
-one (about 3 ms of buffer against 90 ms for MME), so you never need to pick it
-by index.
+one (MME buffers far more), so you never need to pick it by index.
+
+## Latency
+
+What you hear is delayed by mic-monitor's own buffer plus everything the
+operating system and the devices add. mic-monitor's part is the smallest:
+at the default blocksize of 64 frames it is about 1.3 ms at 48 kHz. Windows'
+shared-mode audio engine adds roughly 20 ms on each side, and a wireless
+headset adds its own radio buffering on top.
+
+Measured on the author's setup (Blue Yeti into a Corsair Virtuoso SE on its
+2.4 GHz wireless link), with a beep played through the headset held against
+the microphone: about 130 ms from mic to ear. Most of that is outside
+mic-monitor. Lowering `--blocksize` from 256 to 64 saved 4 ms of it.
+
+To get it lower:
+
+- **Use a wired path to your ears.** A wireless link is usually the biggest
+  single delay. A USB or 3.5 mm cable mode on the headset avoids it.
+- **Use the microphone's own headphone jack if it has one.** Many USB
+  microphones and audio interfaces (the Yeti, most interfaces with a "direct
+  monitor" knob) mix the mic into their headphone output in hardware, with no
+  delay at all. mic-monitor is for when that is not an option.
+- `--blocksize 32` trims about 1 ms more, at a higher risk of crackles.
 
 ## How recovery works
 

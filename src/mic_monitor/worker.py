@@ -149,7 +149,7 @@ class Monitor:
         in_dev, out_dev = sd.query_devices(in_idx), sd.query_devices(out_idx)
         # Follow the input device's rate unless the caller overrides.
         samplerate = int(self.settings.get("samplerate") or in_dev["default_samplerate"])
-        blocksize = int(self.settings.get("blocksize") or 256)
+        blocksize = int(self.settings.get("blocksize") or 64)
         channels = stream_channels(in_dev, out_dev)
         extra = None
         # WASAPI shared mode rejects a rate that differs from an endpoint's
@@ -272,7 +272,7 @@ def add_settings_args(ap: argparse.ArgumentParser) -> None:
     ap.add_argument("--in", dest="in_", metavar="NAME", help="input device name substring")
     ap.add_argument("--out", metavar="NAME", help="output device name substring")
     ap.add_argument("--gain", type=float, help="output gain multiplier (default 1.0)")
-    ap.add_argument("--blocksize", type=int, help="frames per block; lower = less latency (256)")
+    ap.add_argument("--blocksize", type=int, help="frames per block; lower = less latency (64)")
     ap.add_argument("--samplerate", type=int, help="sample rate (default: input device's own)")
 
 

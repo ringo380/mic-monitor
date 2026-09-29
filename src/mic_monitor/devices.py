@@ -1,8 +1,8 @@
 """Audio device selection on top of sounddevice / PortAudio.
 
 PortAudio on Windows lists every endpoint once per host API (MME, DirectSound,
-WASAPI, WDM-KS). Only WASAPI is low latency (about 3 ms here versus 90 ms for
-MME), so both name matching and the "system default" fall back prefer it.
+WASAPI, WDM-KS). Only WASAPI is low latency (MME buffers far more), so both
+name matching and the "system default" fall back prefer it.
 On macOS and Linux there is one host API and the preference is a no-op.
 
 Every function takes optional `devices` / `hostapis` lists so the selection

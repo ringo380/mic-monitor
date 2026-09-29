@@ -24,7 +24,7 @@ def test_save_merges_and_round_trips(tmp_path):
     config.save({"out": "CORSAIR", "gain": 0.8}, p)
     loaded = config.load(p)
     assert loaded["in"] == "Yeti" and loaded["out"] == "CORSAIR" and loaded["gain"] == 0.8
-    assert loaded["blocksize"] == 256  # untouched default persists
+    assert loaded["blocksize"] == 64  # untouched default persists
 
 
 def test_resolve_precedence_cli_over_saved_over_default():
@@ -34,7 +34,7 @@ def test_resolve_precedence_cli_over_saved_over_default():
     assert r["in"] == "Yeti"  # CLI None does not override
     assert r["gain"] == 2.0  # CLI value wins
     assert r["out"] == "CORSAIR"
-    assert r["blocksize"] == 256  # default
+    assert r["blocksize"] == 64  # default
 
 
 def test_dirs_follow_env(monkeypatch, tmp_path):
