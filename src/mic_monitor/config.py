@@ -64,6 +64,27 @@ def tray_log_path() -> Path:
     return state_dir() / "tray.log"
 
 
+def last_state_path() -> Path:
+    """"on" or "off": what the user last asked for, so the tray can put
+    monitoring back the way it was at the next login."""
+    return state_dir() / "last_state"
+
+
+def remember_state(on: bool) -> None:
+    try:
+        state_dir().mkdir(parents=True, exist_ok=True)
+        last_state_path().write_text("on" if on else "off", encoding="utf-8")
+    except OSError:
+        pass
+
+
+def last_state_on() -> bool:
+    try:
+        return last_state_path().read_text(encoding="utf-8").strip() == "on"
+    except OSError:
+        return False
+
+
 def load(path: Path | None = None) -> dict[str, object]:
     """Saved settings merged over DEFAULTS. Unknown keys are ignored; a
     missing or unreadable file yields the defaults."""

@@ -111,9 +111,25 @@ def _clear_state() -> None:
 
 # --- commands --------------------------------------------------------------
 
+def worker_python() -> str:
+    """The interpreter for the background worker. On Windows prefer the
+    pythonw.exe next to python.exe: it is GUI-subsystem, so neither it nor
+    the real interpreter a venv launcher spawns ever gets a console window.
+    (A console python.exe started without a console allocates a new,
+    visible one.)"""
+    exe = sys.executable
+    if sys.platform == "win32":
+        base = os.path.basename(exe).lower()
+        if base == "python.exe":
+            w = os.path.join(os.path.dirname(exe), "pythonw.exe")
+            if os.path.exists(w):
+                return w
+    return exe
+
+
 def worker_command(settings: dict, python: str | None = None, token: str = "") -> list[str]:
     return [
-        python or sys.executable, "-m", "mic_monitor.worker",
+        python or worker_python(), "-m", "mic_monitor.worker",
         "--log", str(config.log_path()),
         "--status-file", str(config.status_path()),
         "--token", token,
@@ -121,8 +137,11 @@ def worker_command(settings: dict, python: str | None = None, token: str = "") -
     ]
 
 
-def start(cli_settings: dict | None = None) -> str:
-    """Start the background worker. Returns a one-line message."""
+def start(cli_settings: dict | None = None, remember: bool = True) -> str:
+    """Start the background worker. Returns a one-line message. `remember`
+    records "on" as the state to restore at the next login."""
+    if remember:
+        config.remember_state(True)
     pid = read_pid()
     if pid:
         return f"Already running (pid {pid})."
@@ -134,8 +153,11 @@ def start(cli_settings: dict | None = None) -> str:
         close_fds=True,
     )
     if sys.platform == "win32":
+        # CREATE_NO_WINDOW, not DETACHED_PROCESS: should the worker end up on
+        # a console python.exe after all, it gets a hidden console instead
+        # of allocating a visible one.
         kwargs["creationflags"] = (
-            subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
+            subprocess.CREATE_NO_WINDOW | subprocess.CREATE_NEW_PROCESS_GROUP
         )
     else:
         kwargs["start_new_session"] = True
@@ -155,7 +177,11 @@ def start(cli_settings: dict | None = None) -> str:
     return f"Started (pid {proc.pid}); still opening devices. Log: {config.log_path()}"
 
 
-def stop() -> str:
+def stop(remember: bool = True) -> str:
+    """Stop the worker. `remember` records "off" for the next login; the
+    tray's Exit passes False so monitoring that was on comes back."""
+    if remember:
+        config.remember_state(False)
     pid = read_pid()
     if not pid:
         _clear_state()

@@ -19,7 +19,8 @@ What it does:
      %LOCALAPPDATA%\mic-monitor\bin and adds that folder to your user PATH.
   5. Adds a Start Menu shortcut "mic-monitor tray" and starts the tray icon.
 
-Uninstall stops mic-monitor and removes everything above. Your saved settings
+Uninstall stops mic-monitor and removes everything above, plus the tray's
+Start at login entry if it was turned on. Your saved settings
 (%APPDATA%\mic-monitor) and logs (%LOCALAPPDATA%\mic-monitor\*.log) are kept.
 
 Options: -Uninstall, -NoLaunch (do not start the tray icon),
@@ -161,6 +162,11 @@ if ($Uninstall) {
     Remove-Owned $Bin
     Remove-Owned $Icon
     if (Test-Path -LiteralPath $Shortcut) { Remove-Item -LiteralPath $Shortcut -Force }
+    # The tray's Start at login entry (mic_monitor.autostart).
+    foreach ($key in 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run',
+                     'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run') {
+        Remove-ItemProperty -LiteralPath $key -Name 'mic-monitor' -ErrorAction SilentlyContinue
+    }
     Remove-FromUserPath
     Say ''
     Say 'mic-monitor is uninstalled.'

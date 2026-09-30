@@ -21,7 +21,8 @@
 #      ~/.local/bin and makes sure that folder is on your PATH.
 #   5. Starts the tray icon.
 #
-# Uninstall stops mic-monitor and removes everything above. Your saved settings
+# Uninstall stops mic-monitor and removes everything above, plus the tray's
+# Start at login entry if it was turned on. Your saved settings
 # (~/.config/mic-monitor) and logs (~/.local/state/mic-monitor) are kept.
 #
 # Options: --uninstall, --no-launch (do not start the tray icon). Set
@@ -159,6 +160,9 @@ if [ "$UNINSTALL" = 1 ]; then
         fi
     done
     rmdir "$DATA" 2>/dev/null || true
+    # The tray's Start at login entry (mic_monitor.autostart).
+    rm -f "$HOME/Library/LaunchAgents/com.robworks.mic-monitor.tray.plist" \
+        "${XDG_CONFIG_HOME:-$HOME/.config}/autostart/mic-monitor-tray.desktop"
     say ''
     say 'mic-monitor is uninstalled.'
     say ''

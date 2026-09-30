@@ -9,7 +9,8 @@ through PortAudio with a small buffer, and it survives a wireless headset
 going to sleep and waking up.
 
 - **CLI**: `mic-monitor` toggles monitoring on and off in the background.
-- **Tray icon**: `mic-monitor-tray` gives you a click-to-toggle icon.
+- **Tray icon**: `mic-monitor-tray` gives you a click-to-toggle icon, with a
+  menu to pick devices and start at login.
 - **Any devices**: defaults to the system default input and output, and on
   Windows follows them when you change the default in Sound settings. Pick
   others by a part of their name.
@@ -77,10 +78,21 @@ mic-monitor-tray
 ```
 
 Green disc with a white mic = on, grey disc with a red slash = off. Left-click
-toggles, right-click shows the devices, Start/Stop and Quit. Quitting stops
-monitoring. The icon polls every 3 seconds, so it stays correct when you toggle
-from a terminal. To have it at login, add `mic-monitor-tray` to your startup
-items (Windows: `shell:startup` folder, macOS: Login Items).
+toggles. Right-click opens the menu:
+
+- **Start / Stop monitoring**, with the devices in use shown above it.
+- **Input device** and **Output device**: pick one, or "System default" to
+  follow whatever the system default is.
+- **Volume** (50% to 200%) and **Latency** (the blocksize).
+- **Start at login**: puts the tray icon in your login items. At login,
+  monitoring comes back on only if it was on when you last logged off or
+  exited.
+- **Open log** and **Exit** (Quit on macOS). Exit stops monitoring.
+
+A change in the menu is saved like `mic-monitor config` does, and monitoring
+that is running restarts with it. The icon polls every 3 seconds, so it stays
+correct when you toggle from a terminal or plug in a device. On Windows the
+menu follows the light or dark app mode.
 
 ## Choose devices and settings
 
