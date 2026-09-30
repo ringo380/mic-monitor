@@ -281,7 +281,10 @@ def build_parser() -> argparse.ArgumentParser:
     ):
         p = sub.add_parser(name, help=help_)
         add_settings_args(p)
-    sub.add_parser("stop", help="stop monitoring")
+    p = sub.add_parser("stop", help="stop monitoring")
+    # For the installers: stop for an upgrade without changing whether the
+    # tray turns monitoring back on at the next login.
+    p.add_argument("--keep-state", action="store_true", help=argparse.SUPPRESS)
     sub.add_parser("status", help="show whether monitoring is running")
     sub.add_parser("list", help="list audio devices")
     p = sub.add_parser("config", help="show or save default settings")
@@ -298,7 +301,7 @@ def main(argv=None) -> int:
     elif cmd == "toggle":
         print(toggle(settings_from_args(args)))
     elif cmd == "stop":
-        print(stop())
+        print(stop(remember=not args.keep_state))
     elif cmd == "status":
         print(status())
     elif cmd == "list":

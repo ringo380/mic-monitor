@@ -50,6 +50,8 @@ def test_remembered_state_follows_start_and_stop_but_not_exit():
     assert config.last_state_on()
     cli.stop(remember=False)  # the tray's Exit
     assert config.last_state_on()
+    cli.main(["stop", "--keep-state"])  # the installers, before an upgrade
+    assert config.last_state_on()
     cli.stop()  # an explicit stop
     assert not config.last_state_on()
 

@@ -70,7 +70,7 @@ function Stop-MicMonitor {
     # a running exe fails on Windows, so this has to be thorough.
     $cli = Join-Path $Bin 'mic-monitor.exe'
     if (Test-Path -LiteralPath $cli) {
-        try { & $cli stop 2>&1 | Out-Null } catch { }
+        try { & $cli stop --keep-state 2>&1 | Out-Null } catch { }
     }
     $procs = Get-CimInstance Win32_Process | Where-Object {
         ($_.ExecutablePath -and $_.ExecutablePath.StartsWith("$Root\", [StringComparison]::OrdinalIgnoreCase)) -or

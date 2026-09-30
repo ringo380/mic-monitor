@@ -63,7 +63,7 @@ stop_running() {
     # Stop the background worker through the CLI when we have one (it goes
     # through the PID file), then anything left from this or another install.
     if [ -x "$BIN/mic-monitor" ]; then
-        "$BIN/mic-monitor" stop >/dev/null 2>&1 || true
+        "$BIN/mic-monitor" stop --keep-state >/dev/null 2>&1 || true
     fi
     pkill -f "$VENV/" >/dev/null 2>&1 || true
     pkill -f 'mic_monitor\.worker' >/dev/null 2>&1 || true
